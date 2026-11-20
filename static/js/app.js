@@ -21,8 +21,21 @@ let toastTimer;
 function toast(s) { const t = $('toast'); t.textContent = s; t.classList.remove('hidden'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.add('hidden'), 2800); }
 
 // ------------------------------------------------------------------ API
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+// The free backend sleeps when idle; retry safe GETs while it wakes up (~1 min).
+async function fetchWake(path, opts = {}) {
+  const safe = !opts.method || opts.method === 'GET';
+  for (let i = 0; ; i++) {
+    try {
+      const res = await fetch(path, opts);
+      if (!safe || i >= 8 || ![502, 503, 504].includes(res.status)) return res;
+    } catch (e) { if (!safe || i >= 8) throw e; }
+    if (i === 0 && typeof toast === 'function') toast('Waking up the server, one moment…');
+    await sleep(5000);
+  }
+}
 async function api(path, { method = 'GET', body, retry = true } = {}) {
-  const res = await fetch(path, {
+  const res = await fetchWake(path, {
     method, credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf, 'X-Client-Date': today() },
     body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -37,7 +50,7 @@ async function api(path, { method = 'GET', body, retry = true } = {}) {
   if (data.csrf) csrf = data.csrf;
   return data;
 }
-async function loadSession() { const s = await (await fetch('/api/session', { credentials: 'same-origin' })).json(); csrf = s.csrf; return s; }
+async function loadSession() { const s = await (await fetchWake('/api/session', { credentials: 'same-origin' })).json(); csrf = s.csrf; return s; }
 async function refresh(month) {
   const d = await api('/api/dashboard' + (month ? '?month=' + encodeURIComponent(month) : ''));
   apply(d);

@@ -36,7 +36,7 @@ studentspend/
 ├── tests/test_api.py       # automated tests
 ├── seed_demo.py            # creates a demo account with sample data
 ├── requirements.txt
-├── Dockerfile · Procfile · render.yaml
+├── Dockerfile · Procfile · render.yaml · netlify.toml
 └── .env.example
 ```
 
@@ -99,6 +99,59 @@ Copy `.env.example` to `.env` and edit:
 ## 2. Deploy it online
 
 > Use PostgreSQL in production. Free hosts usually wipe the local disk on every restart, which would delete a SQLite database.
+
+### Recommended — Netlify (website) + Render (backend & database)
+
+Netlify only hosts static files, so the Python backend and PostgreSQL database run on Render, and Netlify
+forwards every `/api/...` request to it (configured in `netlify.toml`). Visitors only ever see your
+`netlify.app` address, and logins and cookies work normally because the browser talks to a single site.
+
+**Step 1 — Put the code on GitHub**
+1. Create an empty repository at [github.com/new](https://github.com/new) (e.g. `studentspend`). Don't add a README.
+2. In the project folder run:
+   ```bash
+   git init
+   git add .
+   git commit -m "StudentSpend"
+   git branch -M main
+   git remote add origin https://github.com/<your-username>/studentspend.git
+   git push -u origin main
+   ```
+   (Or click **Add file → Upload files** on GitHub and drag in the contents of the unzipped folder.)
+
+**Step 2 — Deploy the backend on Render**
+1. Sign up at [render.com](https://render.com) with your GitHub account.
+2. Click **New + → Blueprint**, select the `studentspend` repository, and click **Apply**.
+   Render creates the web service **studentspend** plus the PostgreSQL database **studentspend-db**, and sets
+   `DATABASE_URL`, `SECRET_KEY` and `SESSION_COOKIE_SECURE` automatically.
+3. Wait until the service shows **Live** (3–5 minutes). Copy its address from the top of the page,
+   e.g. `https://studentspend-ab12.onrender.com`.
+4. Check it: open `https://studentspend-ab12.onrender.com/healthz`. You should see `{"ok": true}`.
+
+**Step 3 — Connect Netlify to your backend**
+1. In your GitHub repo open `netlify.toml` and click the pencil (edit) icon.
+2. Replace both `BACKEND_HOST` with your Render host **without** `https://`, e.g.
+   `to = "https://studentspend-ab12.onrender.com/api/:splat"`
+3. Click **Commit changes**.
+
+**Step 4 — Deploy the website on Netlify**
+1. Sign up at [netlify.com](https://www.netlify.com) with GitHub.
+2. Click **Add new site → Import an existing project → GitHub** and select `studentspend`.
+3. Netlify reads `netlify.toml` automatically (build command and publish folder `dist` are pre-filled). Click **Deploy**.
+4. When it finishes, open the `https://<random-name>.netlify.app` link and register an account.
+5. Optional: **Site configuration → Change site name** to get e.g. `https://studentspend.netlify.app`.
+
+**Step 5 — (Optional) demo account**
+On Render open the **studentspend** service → **Shell** → run `python seed_demo.py` (login `demo` / `demo1234`).
+The Shell needs a paid instance; on the free plan just register a new account on the site instead.
+
+**Good to know**
+- Render's free backend sleeps after 15 minutes without visitors. The first visit afterwards takes about a minute;
+  the site shows "Waking up the server…" and retries automatically. Open the site a minute before presenting.
+- Render's free PostgreSQL database expires 30 days after it is created. For a permanent site, create a free
+  database at [neon.tech](https://neon.tech), copy its connection string, and paste it as `DATABASE_URL` under
+  the Render service's **Environment** tab.
+- Every `git push` to `main` redeploys both Render and Netlify automatically.
 
 ### Option A — Render (free, easiest, includes a free PostgreSQL database)
 

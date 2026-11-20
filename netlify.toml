@@ -1,0 +1,25 @@
+# Netlify hosts the frontend; API calls are proxied to the Flask backend on Render,
+# so the browser sees one origin and session cookies keep working.
+[build]
+  command = "rm -rf dist && mkdir -p dist && cp -r static dist/static && cp static/index.html dist/index.html"
+  publish = "dist"
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://BACKEND_HOST/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/healthz"
+  to = "https://BACKEND_HOST/healthz"
+  status = 200
+  force = true
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "same-origin"
+    Content-Security-Policy = "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
