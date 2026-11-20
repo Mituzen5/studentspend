@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>StudentSpend — Smart Student Money Manager</title>
+<meta name="description" content="StudentSpend helps students track expenses, plan a daily budget, roll over unused money and reach savings goals.">
+<meta name="theme-color" content="#16a36a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%2316a36a'/%3E%3Ctext x='50' y='70' font-size='62' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3E₹%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="/static/css/styles.css">
+<script src="/static/js/theme.js"></script>
+</head>
+<body>
+<div id="loading" class="loading">Loading StudentSpend…</div>
+
+<!-- ============ AUTH ============ -->
+<div id="authView" class="auth-wrap hidden"><div class="auth-shell">
+ <section class="hero">
+  <div class="logo"><span class="logo-mark">₹</span> StudentSpend</div>
+  <h2>Spend smart.<br><em>Save for what matters.</em></h2>
+  <p class="lead">The money manager built for students — track every rupee, get a daily safe-to-spend budget, and watch your savings goals grow.</p>
+  <div class="feature-list">
+   <div class="feature"><span class="fi">📅</span><div><b>Daily budget</b>Know exactly what you can spend today</div></div>
+   <div class="feature"><span class="fi">🔁</span><div><b>Auto rollover</b>Unused money carries into next month</div></div>
+   <div class="feature"><span class="fi">📊</span><div><b>Visual reports</b>Interactive charts for every month</div></div>
+   <div class="feature"><span class="fi">🎯</span><div><b>Savings goals</b>Deadlines, progress and smart targets</div></div>
+  </div>
+ </section>
+ <div class="auth">
+  <div class="logo"><span class="logo-mark">₹</span> StudentSpend</div>
+  <h1 id="authTitle">Your money. Your goals.</h1><p class="muted" id="authSub">Sign in to make your student budget work smarter.</p>
+  <form id="authForm" novalidate>
+    <div class="field"><label for="username">Student ID</label><input id="username" autocomplete="username" required maxlength="30" placeholder="e.g. alex23"></div>
+    <div class="field hidden" id="nameField"><label for="displayName">Your name</label><input id="displayName" maxlength="60" placeholder="What should we call you?"></div>
+    <div class="field"><label for="password">Password</label>
+      <div class="pw-wrap"><input id="password" type="password" autocomplete="current-password" required minlength="8" maxlength="128" placeholder="At least 8 characters"><button type="button" class="pw-toggle" id="pwToggle" aria-label="Show password">Show</button></div>
+      <div class="hidden" id="strengthWrap"><div class="strength"><span id="strengthBar"></span></div><div class="hint" id="strengthText">Use 8+ characters with letters and numbers.</div></div>
+    </div>
+    <div class="field hidden" id="allowanceField"><label for="regAllowance">Monthly allowance (₹)</label><input id="regAllowance" type="number" min="0" step="1" value="5000" inputmode="numeric"><span class="hint">You can change this any time.</span></div>
+    <div class="form-error" id="authError" role="alert"></div>
+    <button class="full" id="authSubmit" type="submit">Login to dashboard</button>
+  </form>
+  <div class="auth-foot"><span id="authSwitchText">New here?</span> <span class="link" id="authSwitch" role="button" tabindex="0">Create student account</span></div>
+  <p class="muted" style="font-size:11px;margin:18px 0 0">🔒 Secure accounts: passwords are hashed and your data is stored in the StudentSpend database.</p>
+ </div>
+</div></div>
+
+<!-- ============ APP ============ -->
+<div id="appView" class="app hidden">
+ <header class="topbar"><div class="logo"><span class="logo-mark">₹</span> StudentSpend</div>
+  <nav class="nav" aria-label="Main">
+   <a href="#dashboard" data-tab="dashboard">🏠 Dashboard</a><a href="#reports" data-tab="reports">📊 Reports</a><a href="#goals" data-tab="goals">🎯 Goals</a><a href="#settings" data-tab="settings">⚙️ Settings</a>
+  </nav>
+  <div class="top-actions"><span id="userGreeting" class="muted" style="font-size:13px"></span><button class="icon-btn" id="themeBtn" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button><div class="avatar" id="avatar">S</div><button class="secondary" id="logoutBtn">Log out</button></div></header>
+
+ <div id="monthHeader">
+  <section class="welcome"><div><h1>Hey, <span id="studentName">Student</span> 👋</h1><p>Small money choices today make big goals possible tomorrow.</p></div>
+   <div class="score-pill" title="Money health score for the selected month"><div class="score-ring" id="scoreRing"><span id="scoreValue">0</span></div><div><b style="font-size:13px">Money health score</b><div class="muted" style="font-size:12px" id="scoreText">Add your allowance to start</div></div></div>
+  </section>
+  <div class="section-head wrap"><div><h2 id="monthTitle">Monthly overview</h2><p id="cycleText">Your money at a glance</p></div><div class="month-bar"><select class="month-select" id="monthSelect" aria-label="Choose month"></select></div></div>
+ </div>
+
+ <!-- DASHBOARD -->
+ <main id="view-dashboard" class="view">
+ <section class="grid stats">
+  <div class="card accent"><div class="stat-top">Monthly money <span class="stat-icon">💳</span></div><div class="stat-value" id="totalMoney">₹0</div><div class="stat-note" id="moneyNote">Allowance + carried forward</div></div>
+  <div class="card"><div class="stat-top">Total spent <span class="stat-icon">🛍️</span></div><div class="stat-value" id="totalSpent">₹0</div><div class="stat-note" id="spentNote">Across all categories</div></div>
+  <div class="card"><div class="stat-top">Saved this month <span class="stat-icon">🌱</span></div><div class="stat-value" id="totalSaved">₹0</div><div class="stat-note">Money moved to savings</div></div>
+  <div class="card"><div class="stat-top">Available balance <span class="stat-icon">✨</span></div><div class="stat-value" id="balance">₹0</div><div class="stat-note" id="balanceNote">Ready for the rest of the month</div></div>
+ </section>
+ <section class="grid main-grid">
+  <div class="card"><div class="section-head"><div><h2>Budget health</h2><p>Keep your spending in the safe zone</p></div><span class="tag" id="healthTag">On track</span></div>
+   <div class="budget-line"><span>Money used (spending + savings)</span><b id="usedPercent">0%</b></div><div class="progress" id="budgetProgress"><span id="budgetBar" style="width:0%"></span></div>
+   <div id="warningArea" class="warn-list" aria-live="polite"></div>
+   <div class="daily-box"><div class="section-head" style="margin:0"><div><b id="dailyTitle">Today's safe-to-spend budget</b><p>Based on your remaining balance and days left</p></div><span>📅</span></div><div class="daily-amount" id="dailyBudget">₹0</div><p id="dailyHint">A simple daily guide to help you stay on track.</p>
+    <div class="daily-grid" id="dailyGrid"></div></div>
+   <div class="section-head" style="margin-top:22px"><div><h2>Spending trend</h2><p>Your cumulative spending vs. an ideal steady pace</p></div><div class="chart-legend"><span><i class="dot" style="background:#16a36a"></i>You</span><span><i class="dot" style="background:#94a3b8"></i>Ideal</span></div></div>
+   <div class="chart-box"><canvas id="trendChart" aria-label="Spending trend chart" role="img"></canvas></div>
+   <div class="section-head" style="margin-top:22px"><div><h2>Spending by category</h2><p>See where your money goes</p></div><a class="link" href="#settings" style="font-size:12px">Set limits</a></div><div class="category-list" id="categoryList"></div>
+  </div>
+  <div class="card"><div class="section-head"><div><h2>Quick actions</h2><p>Keep your money records updated</p></div></div>
+   <button class="full" id="addExpenseBtn">+ Add an expense</button><button class="secondary full" style="margin-top:9px" id="addSavingBtn">🌱 Add to savings</button><button class="secondary full" style="margin-top:9px" id="incomeBtn">+ Update monthly allowance</button>
+   <div class="alert green" style="margin-top:17px">💡 <b>Student tip:</b> <span id="tipText">Save a little first, then plan your spending with what remains.</span></div>
+   <div class="section-head" style="margin-top:20px"><div><h2>Monthly cycle</h2><p>Unused balance rolls into the next month automatically</p></div><span>🔁</span></div>
+   <div style="font-size:13px;color:var(--muted)" id="carryInfo">Your carry-forward amount will appear here.</div>
+   <div class="cycle-list" id="cycleList"></div>
+   <div class="section-head" style="margin-top:20px"><div><h2>No-spend challenge</h2><p>Try one day without non-essential spending</p></div><span id="streakBadge" class="tag">🔥 0</span></div>
+   <button class="secondary full" id="challengeBtn">🎯 Start today's challenge</button><div class="streak" id="streakBar"></div><p id="challengeStatus" class="muted" style="font-size:12px;margin-bottom:0"></p>
+  </div>
+ </section>
+ <section class="grid lower-grid">
+  <div class="card"><div class="section-head"><div><h2>Savings goals</h2><p>Give your savings a purpose</p></div><button class="secondary" id="goalBtn">+ Goal</button></div><div id="goalsList"></div></div>
+  <div class="card"><div class="section-head"><div><h2>Money habits</h2><p>Your small wins add up</p></div><span>🏆</span></div><div id="insights" class="muted" style="font-size:13px"></div><div class="alert" style="margin-bottom:0">Needs = essentials like food, travel and study supplies. Wants = movies, treats and impulse buys. Try balancing both!</div></div>
+ </section>
+ <section class="card transactions"><div class="section-head wrap"><div><h2>Recent activity</h2><p>Every rupee, with its date</p></div>
+   <div class="filters"><input class="search" id="txSearch" type="search" placeholder="Search notes or categories" aria-label="Search transactions"><select class="month-select" id="txFilter" aria-label="Filter by type"><option value="">All types</option><option value="expense">Expenses</option><option value="saving">Savings</option></select><button class="secondary" id="exportBtn">↓ Export CSV</button></div></div>
+  <div class="table-wrap tx"><table><thead><tr><th>Date</th><th>Details</th><th>Category</th><th>Type</th><th>Amount</th><th></th></tr></thead><tbody id="transactionsBody"></tbody></table></div>
+  <div class="tx-cards" id="txCards"></div>
+  <button class="secondary full hidden" id="txMore" style="margin-top:12px">Show all</button>
+ </section>
+ </main>
+
+ <!-- REPORTS -->
+ <main id="view-reports" class="view hidden">
+  <div class="section-head no-print report-actions" style="justify-content:flex-end;gap:8px"><button class="secondary" id="exportAllBtn">↓ Export all (CSV)</button><button class="secondary" id="exportMonthBtn">↓ This month (CSV)</button><button id="printBtn">🖨️ Print / Save PDF</button></div>
+  <section class="grid stats kpis" id="kpis"></section>
+  <section class="grid report-grid">
+   <div class="card"><div class="section-head"><div><h2>Where your money went</h2><p>Spending share by category</p></div></div><div class="chart-box tall"><canvas id="catChart" role="img" aria-label="Category chart"></canvas></div></div>
+   <div class="card"><div class="section-head"><div><h2>Daily spending</h2><p>Red bars are days above your steady daily pace</p></div></div><div class="chart-box tall"><canvas id="dailyChart" role="img" aria-label="Daily spending chart"></canvas></div></div>
+   <div class="card"><div class="section-head"><div><h2>Month-by-month</h2><p>Last 6 cycles: spent, saved and carried forward</p></div></div><div class="chart-box tall"><canvas id="historyChart" role="img" aria-label="Monthly history chart"></canvas></div></div>
+   <div class="card"><div class="section-head"><div><h2>Needs vs wants</h2><p>Healthy target: 70% needs · 30% wants</p></div></div><div class="chart-box tall"><canvas id="needsChart" role="img" aria-label="Needs versus wants chart"></canvas></div></div>
+  </section>
+  <section class="card transactions"><div class="section-head"><div><h2>Monthly report summary</h2><p id="reportSub">Highlights for this cycle</p></div><span>📝</span></div><div id="reportSummary" style="font-size:14px"></div>
+   <div class="table-wrap" style="margin-top:12px"><table><thead><tr><th>Month</th><th>Allowance</th><th>Carried in</th><th>Spent</th><th>Saved</th><th>Balance</th></tr></thead><tbody id="historyBody"></tbody></table></div></section>
+ </main>
+
+ <!-- GOALS -->
+ <main id="view-goals" class="view hidden">
+  <section class="welcome"><div><h1>Savings goals 🎯</h1><p>Set a target, add money regularly and track your progress.</p></div><button id="goalBtn2">+ New goal</button></section>
+  <section class="grid stats" id="goalStats"></section>
+  <section class="grid goal-grid" id="goalCards"></section>
+ </main>
+
+ <!-- SETTINGS -->
+ <main id="view-settings" class="view hidden">
+  <section class="welcome"><div><h1>Settings ⚙️</h1><p>Personalise StudentSpend and set smart spending limits.</p></div></section>
+  <section class="grid settings-grid">
+   <div class="card"><div class="section-head"><div><h2>Profile</h2><p id="profileId">Student ID</p></div></div>
+    <form id="profileForm"><div class="field"><label for="profileName">Your name</label><input id="profileName" maxlength="60" required></div><button>Save profile</button></form>
+    <div class="section-head" style="margin-top:24px"><div><h2>Preferences</h2></div></div>
+    <div class="switch"><span>🌙 Dark mode</span><button class="toggle" id="darkToggle" aria-label="Dark mode" aria-pressed="false"></button></div>
+    <div class="switch"><span>💳 Default monthly allowance</span><b id="defaultAllowance">₹0</b></div>
+    <p class="hint">New months automatically start with your default allowance plus any unused balance from last month.</p>
+   </div>
+   <div class="card"><div class="section-head"><div><h2>Category spending limits</h2><p>Get warnings when a category nears its monthly limit</p></div></div>
+    <form id="limitsForm"><div class="limit-grid" id="limitFields"></div><button>Save limits</button></form></div>
+   <div class="card"><div class="section-head"><div><h2>Change password</h2><p>Signs you out on other devices</p></div></div>
+    <form id="passwordForm"><div class="field"><label for="curPw">Current password</label><input id="curPw" type="password" autocomplete="current-password" required></div><div class="field"><label for="newPw">New password</label><input id="newPw" type="password" autocomplete="new-password" minlength="8" required></div><button>Update password</button></form></div>
+   <div class="card"><div class="section-head"><div><h2>Danger zone</h2><p>Permanently delete your account and all data</p></div></div><button class="danger" id="deleteAccountBtn">Delete my account</button></div>
+  </section>
+ </main>
+ <div class="footer">Made for smarter student money habits · StudentSpend</div>
+</div>
+
+<nav class="bottom-nav hidden" id="bottomNav" aria-label="Main mobile">
+ <a href="#dashboard" data-tab="dashboard"><span>🏠</span>Home</a><a href="#reports" data-tab="reports"><span>📊</span>Reports</a><a href="#goals" data-tab="goals"><span>🎯</span>Goals</a><a href="#settings" data-tab="settings"><span>⚙️</span>Settings</a>
+</nav>
+<button class="fab hidden" id="fab" aria-label="Add an expense">+</button>
+<div id="modalHost"></div><div id="toast" class="toast hidden" role="status"></div>
+<script src="/static/vendor/chart.umd.min.js"></script>
+<script src="/static/js/app.js"></script>
+</body></html>
